@@ -2729,6 +2729,16 @@ zink_create_logical_device(struct zink_screen *screen)
       qci[i].pQueuePriorities = &dummy;
    }
 
+   VkDeviceQueueGlobalPriorityCreateInfoKHR gpi;
+   if (screen->priority != VK_QUEUE_GLOBAL_PRIORITY_MEDIUM_KHR) {
+      gpi = (VkDeviceQueueGlobalPriorityCreateInfoKHR){
+         .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_GLOBAL_PRIORITY_CREATE_INFO_KHR,
+         .pNext = NULL,
+      };
+      gpi.globalPriority = screen->priority;
+      qci->pNext = &gpi;
+   }
+
    unsigned num_queues = 1;
    if (screen->sparse_queue != screen->gfx_queue)
       num_queues++;
@@ -3255,7 +3265,7 @@ zink_screen_get_fd(struct pipe_screen *pscreen)
 }
 
 static struct zink_screen *
-zink_internal_create_screen(const struct pipe_screen_config *config, int64_t dev_major, int64_t dev_minor)
+zink_internal_create_screen(const struct pipe_screen_config *config, int64_t dev_major, int64_t dev_minor, int priority)
 {
    if (getenv("ZINK_USE_LAVAPIPE")) {
       mesa_loge("ZINK_USE_LAVAPIPE is obsolete. Use LIBGL_ALWAYS_SOFTWARE\n");
@@ -3282,6 +3292,13 @@ zink_internal_create_screen(const struct pipe_screen_config *config, int64_t dev
       screen->threaded_submit = screen->threaded;
    screen->abort_on_hang = debug_get_bool_option("ZINK_HANG_ABORT", false);
 
+   if (priority & PIPE_CONTEXT_HIGH_PRIORITY) {
+       screen->priority = VK_QUEUE_GLOBAL_PRIORITY_HIGH_KHR;
+   } else if (priority & PIPE_CONTEXT_LOW_PRIORITY) {
+      screen->priority = VK_QUEUE_GLOBAL_PRIORITY_LOW_KHR;
+   } else {
+      screen->priority = VK_QUEUE_GLOBAL_PRIORITY_MEDIUM_KHR;
+   }
 
    u_trace_state_init();
 
@@ -3675,7 +3692,7 @@ fail:
 struct pipe_screen *
 zink_create_screen(struct sw_winsys *winsys, const struct pipe_screen_config *config)
 {
-   struct zink_screen *ret = zink_internal_create_screen(config, -1, -1);
+   struct zink_screen *ret = zink_internal_create_screen(config, -1, -1, config->priority);
    if (ret) {
       ret->drm_fd = -1;
    }
@@ -3727,7 +3744,7 @@ zink_drm_create_screen(int fd, const struct pipe_screen_config *config)
    if (zink_render_rdev(fd, &dev_major, &dev_minor))
       return NULL;
 
-   ret = zink_internal_create_screen(config, dev_major, dev_minor);
+   ret = zink_internal_create_screen(config, dev_major, dev_minor, config->priority);
 
    if (ret)
       ret->drm_fd = os_dupfd_cloexec(fd);
