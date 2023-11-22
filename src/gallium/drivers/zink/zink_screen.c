@@ -3292,14 +3292,6 @@ zink_internal_create_screen(const struct pipe_screen_config *config, int64_t dev
       screen->threaded_submit = screen->threaded;
    screen->abort_on_hang = debug_get_bool_option("ZINK_HANG_ABORT", false);
 
-   if (priority & PIPE_CONTEXT_HIGH_PRIORITY) {
-       screen->priority = VK_QUEUE_GLOBAL_PRIORITY_HIGH_KHR;
-   } else if (priority & PIPE_CONTEXT_LOW_PRIORITY) {
-      screen->priority = VK_QUEUE_GLOBAL_PRIORITY_LOW_KHR;
-   } else {
-      screen->priority = VK_QUEUE_GLOBAL_PRIORITY_MEDIUM_KHR;
-   }
-
    u_trace_state_init();
 
    screen->loader_lib = util_dl_open(VK_LIBNAME);
@@ -3324,7 +3316,34 @@ zink_internal_create_screen(const struct pipe_screen_config *config, int64_t dev
       //screen->driconf.inline_uniforms = driQueryOptionb(config->options, "radeonsi_inline_uniforms");
       screen->driconf.emulate_point_smooth = driQueryOptionb(config->options, "zink_emulate_point_smooth");
       screen->driconf.zink_shader_object_enable = driQueryOptionb(config->options, "zink_shader_object_enable");
+      screen->driconf.zink_priotiy_override = driQueryOptioni(config->options, "zink_priotiy_override");
    }
+
+   if (screen->driconf.zink_priotiy_override != 0) {
+      switch (screen->driconf.zink_priotiy_override) {
+      case 1:
+         screen->priority = VK_QUEUE_GLOBAL_PRIORITY_LOW_KHR;
+         break;
+      case 2:
+         screen->priority = VK_QUEUE_GLOBAL_PRIORITY_MEDIUM_KHR;
+         break;
+      case 3:
+         screen->priority = VK_QUEUE_GLOBAL_PRIORITY_HIGH_KHR;
+         break;
+      case 4:
+         screen->priority = VK_QUEUE_GLOBAL_PRIORITY_REALTIME_KHR;
+         break;
+      default:
+         unreachable("invalid priority override");
+      }
+   } else if (priority & PIPE_CONTEXT_HIGH_PRIORITY) {
+      screen->priority = VK_QUEUE_GLOBAL_PRIORITY_HIGH_KHR;
+   } else if (priority & PIPE_CONTEXT_LOW_PRIORITY) {
+      screen->priority = VK_QUEUE_GLOBAL_PRIORITY_LOW_KHR;
+   } else {
+      screen->priority = VK_QUEUE_GLOBAL_PRIORITY_MEDIUM_KHR;
+   }
+
 
    if (!zink_create_instance(screen, dev_major > 0 && dev_major < 255))
       goto fail;

@@ -3,6 +3,12 @@
 DRI_CONF_SECTION_DEBUG
    DRI_CONF_DUAL_COLOR_BLEND_BY_LOCATION(false)
    DRI_CONF_OPT_B(radeonsi_inline_uniforms, false, "Optimize shaders by replacing uniforms with literals")
+   DRI_CONF_OPT_E(zink_priotiy_override, 0, 0, 4, "Overrides vulkan queue priority", \
+      DRI_CONF_ENUM(0,"DEFAULT") \
+      DRI_CONF_ENUM(1,"LOW") \
+      DRI_CONF_ENUM(2,"MEDIUM") \
+      DRI_CONF_ENUM(3,"HIGH") \
+      DRI_CONF_ENUM(4,"REALTIME"))
 DRI_CONF_SECTION_END
 
 DRI_CONF_SECTION_PERFORMANCE

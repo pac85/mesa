@@ -1539,6 +1539,7 @@ struct zink_screen {
       bool inline_uniforms;
       bool emulate_point_smooth;
       bool zink_shader_object_enable;
+      int zink_priotiy_override;
    } driconf;
 
    struct zink_format_props format_props[PIPE_FORMAT_COUNT];
