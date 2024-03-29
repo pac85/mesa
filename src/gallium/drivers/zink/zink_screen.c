@@ -3336,6 +3336,7 @@ zink_internal_create_screen(const struct pipe_screen_config *config, int64_t dev
       default:
          unreachable("invalid priority override");
       }
+      printf("global priotiyy overriden to %i\n", screen->driconf.zink_priotiy_override);
    } else if (priority & PIPE_CONTEXT_HIGH_PRIORITY) {
       screen->priority = VK_QUEUE_GLOBAL_PRIORITY_HIGH_KHR;
    } else if (priority & PIPE_CONTEXT_LOW_PRIORITY) {
@@ -3711,7 +3712,7 @@ fail:
 struct pipe_screen *
 zink_create_screen(struct sw_winsys *winsys, const struct pipe_screen_config *config)
 {
-   struct zink_screen *ret = zink_internal_create_screen(config, -1, -1, config->priority);
+   struct zink_screen *ret = zink_internal_create_screen(config, -1, -1, 0);
    if (ret) {
       ret->drm_fd = -1;
    }
@@ -3763,7 +3764,7 @@ zink_drm_create_screen(int fd, const struct pipe_screen_config *config)
    if (zink_render_rdev(fd, &dev_major, &dev_minor))
       return NULL;
 
-   ret = zink_internal_create_screen(config, dev_major, dev_minor, config->priority);
+   ret = zink_internal_create_screen(config, dev_major, dev_minor, 0);
 
    if (ret)
       ret->drm_fd = os_dupfd_cloexec(fd);
